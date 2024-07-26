@@ -39,3 +39,4 @@
 2024-06-17T14:26:46  test(config): lower memory on big inputs
 2024-06-23T09:43:53  build(format): load rules lazily for faster startup
 2024-07-18T16:00:00  chore: in case of fire — commit, push, leave building
+2024-07-26T11:17:07  test(ci): respect .gitignore when walking

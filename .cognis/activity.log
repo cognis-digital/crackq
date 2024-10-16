@@ -43,3 +43,4 @@
 2024-08-20T18:34:14  build(cache): add a dry-run flag
 2024-09-14T13:51:21  build(scoring): short-circuit on first critical
 2024-09-21T08:08:28  docs: standing on the shoulders of giants (garak, sigma, trufflehog)
+2024-10-16T15:25:35  perf(docs): add usage examples to help

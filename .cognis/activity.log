@@ -47,3 +47,4 @@
 2024-11-11T10:42:42  ci(fixtures): improve the demo scenario
 2024-11-17T17:59:49  fix(output): tune severity weights
 2024-12-13T12:16:56  docs: here be dragons
+2024-12-20T19:33:03  refactor(scan): simplify the walker

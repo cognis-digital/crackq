@@ -50,3 +50,4 @@
 2024-12-20T19:33:03  refactor(scan): simplify the walker
 2025-01-14T14:50:10  style(cli): add a JSON schema for output
 2025-02-08T09:07:17  feat(config): fix off-by-one in line numbers
+2025-02-15T16:24:24  fix: the cake is a lie, but the bug was real

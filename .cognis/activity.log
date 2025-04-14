@@ -53,3 +53,4 @@
 2025-02-15T16:24:24  fix: the cake is a lie, but the bug was real
 2025-03-13T11:41:31  docs(detect): improve error messages with context
 2025-04-07T18:58:38  style(parser): wire the MCP tool schema
+2025-04-14T13:15:45  feat(ci): handle empty and malformed input

@@ -54,3 +54,4 @@
 2025-03-13T11:41:31  docs(detect): improve error messages with context
 2025-04-07T18:58:38  style(parser): wire the MCP tool schema
 2025-04-14T13:15:45  feat(ci): handle empty and malformed input
+2025-05-09T08:32:52  docs(scoring): cover the multiline case

@@ -56,3 +56,4 @@
 2025-04-14T13:15:45  feat(ci): handle empty and malformed input
 2025-05-09T08:32:52  docs(scoring): cover the multiline case
 2025-05-16T15:49:59  docs(scoring): add a regression fixture
+2025-06-11T10:06:06  test(engine): pin the test dependencies

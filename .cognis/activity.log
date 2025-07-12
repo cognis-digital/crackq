@@ -58,3 +58,4 @@
 2025-05-16T15:49:59  docs(scoring): add a regression fixture
 2025-06-11T10:06:06  test(engine): pin the test dependencies
 2025-07-06T17:23:13  build(docs): add color + severity icons
+2025-07-12T12:40:20  chore(fixtures): trim whitespace in parsed fields

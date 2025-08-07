@@ -59,3 +59,4 @@
 2025-06-11T10:06:06  test(engine): pin the test dependencies
 2025-07-06T17:23:13  build(docs): add color + severity icons
 2025-07-12T12:40:20  chore(fixtures): trim whitespace in parsed fields
+2025-08-07T19:57:27  chore(fixtures): handle CRLF line endings

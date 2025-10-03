@@ -62,3 +62,4 @@
 2025-08-07T19:57:27  chore(fixtures): handle CRLF line endings
 2025-09-01T14:14:34  perf(report): add --fail-on threshold handling
 2025-09-09T09:31:41  ci(mcp): add pagination to large reports
+2025-10-03T16:48:48  fix(cli): add a fast path for the common case

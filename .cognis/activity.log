@@ -33,3 +33,4 @@
 2025-03-14T13:05:55  docs: clarify usage notes
 2025-04-12T08:22:02  test: add edge case
 2025-08-06T15:39:09  refactor: tidy internals
+2025-11-30T10:56:16  fix: handle empty input gracefully

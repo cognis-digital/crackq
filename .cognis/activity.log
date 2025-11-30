@@ -65,3 +65,4 @@
 2025-10-03T16:48:48  fix(cli): add a fast path for the common case
 2025-10-10T11:05:55  fix: 60% of the time, it works every time
 2025-11-05T18:22:02  refactor(config): assert exit codes in tests
+2025-11-30T13:39:09  ci(detect): lower memory on big inputs

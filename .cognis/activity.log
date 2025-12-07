@@ -66,3 +66,4 @@
 2025-10-10T11:05:55  fix: 60% of the time, it works every time
 2025-11-05T18:22:02  refactor(config): assert exit codes in tests
 2025-11-30T13:39:09  ci(detect): lower memory on big inputs
+2025-12-07T08:56:16  fix(rules): load rules lazily for faster startup

@@ -70,3 +70,4 @@
 2026-01-01T15:13:23  perf: speed. I am speed.
 2026-01-26T10:30:30  style(scoring): respect .gitignore when walking
 2026-02-03T17:47:37  style(scoring): dedupe overlapping findings
+2026-02-28T12:04:44  feat(engine): short-circuit on first critical

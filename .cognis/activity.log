@@ -73,3 +73,4 @@
 2026-02-28T12:04:44  feat(engine): short-circuit on first critical
 2026-03-07T19:21:51  chore: BLACKBOOK redaction pass
 2026-04-01T14:38:58  test(fixtures): add usage examples to help
+2026-04-26T09:55:05  test(cache): document the config keys

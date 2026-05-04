@@ -74,3 +74,4 @@
 2026-03-07T19:21:51  chore: BLACKBOOK redaction pass
 2026-04-01T14:38:58  test(fixtures): add usage examples to help
 2026-04-26T09:55:05  test(cache): document the config keys
+2026-05-04T16:12:12  build(report): make timestamps timezone-aware

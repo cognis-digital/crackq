@@ -1,0 +1,10 @@
+{
+  "name": "@cognis/crackq",
+  "version": "0.2.0",
+  "description": "JavaScript port of crackq (Cognis Neural Suite)",
+  "bin": {
+    "crackq": "index.js"
+  },
+  "license": "LicenseRef-COCL-1.0",
+  "type": "module"
+}

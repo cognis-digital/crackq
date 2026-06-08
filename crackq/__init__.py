@@ -1,31 +1,11 @@
-"""CRACKQ - Self-hosted password cracking queue.
-
-A multi-user job queue for hashcat-style cracking work with a tamper-evident
-audit log. Pure standard library, zero install. The queue, scheduler, audit
-chain and a real (educational) dictionary-cracking engine are all implemented
-here; jobs run against a wordlist using the hash algorithm requested.
-"""
-from .core import (
-    CrackQ,
-    Job,
-    JobState,
-    AuditLog,
-    AuditError,
-    crack_hash,
-    supported_algorithms,
-)
-
-TOOL_NAME = "crackq"
-TOOL_VERSION = "1.0.0"
-
-__all__ = [
-    "CrackQ",
-    "Job",
-    "JobState",
-    "AuditLog",
-    "AuditError",
-    "crack_hash",
-    "supported_algorithms",
-    "TOOL_NAME",
-    "TOOL_VERSION",
-]
+"""crackq — part of the Cognis Neural Suite."""
+try:  # re-export the tool's public API + identity from core
+    from crackq.core import *  # noqa: F401,F403
+except Exception:  # pragma: no cover
+    pass
+try:
+    from crackq.core import TOOL_NAME, TOOL_VERSION
+except Exception:  # pragma: no cover
+    TOOL_NAME = "crackq"
+    TOOL_VERSION = "0.1.0"
+__version__ = TOOL_VERSION

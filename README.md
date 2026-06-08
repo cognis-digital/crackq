@@ -36,7 +36,9 @@ Self-hosted password cracking queue — multi-user hashcat with audit log — wi
 <a name="features"></a>
 ## Features
 
-- ✅ Scan
+- ✅ Supported Algorithms
+- ✅ Detect Algorithm
+- ✅ Crack Hash
 - ✅ Runs on Linux/macOS/Windows · Docker · devcontainer
 - ✅ Ports in Python, JavaScript, Go, and Rust (`ports/`)
 

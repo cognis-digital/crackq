@@ -1,0 +1,14 @@
+[
+  {
+    "id": "j-2001",
+    "age_days": "1",
+    "ruleset_used": true,
+    "user": "red-team-1"
+  },
+  {
+    "id": "j-2002",
+    "age_days": "3",
+    "ruleset_used": true,
+    "user": "red-team-2"
+  }
+]

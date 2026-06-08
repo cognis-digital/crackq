@@ -1,0 +1,14 @@
+[
+  {
+    "id": "j1",
+    "age_days": "14",
+    "ruleset_used": false,
+    "user": "alice"
+  },
+  {
+    "id": "j2",
+    "age_days": "2",
+    "ruleset_used": true,
+    "user": "bob"
+  }
+]

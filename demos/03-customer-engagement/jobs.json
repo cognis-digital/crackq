@@ -1,0 +1,16 @@
+[
+  {
+    "id": "client-a-1",
+    "age_days": "60",
+    "ruleset_used": true,
+    "user": "red-team-1",
+    "client": "Acme Corp"
+  },
+  {
+    "id": "client-a-2",
+    "age_days": "61",
+    "ruleset_used": false,
+    "user": "red-team-1",
+    "client": "Acme Corp"
+  }
+]

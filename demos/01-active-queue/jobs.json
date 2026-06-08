@@ -1,0 +1,26 @@
+[
+  {
+    "id": "j-1234",
+    "age_days": "2",
+    "ruleset_used": true,
+    "user": "ops-lead",
+    "hash_type": "ntlm",
+    "cracked": "40%"
+  },
+  {
+    "id": "j-1235",
+    "age_days": "5",
+    "ruleset_used": true,
+    "user": "red-team-1",
+    "hash_type": "bcrypt",
+    "cracked": "3%"
+  },
+  {
+    "id": "j-1236",
+    "age_days": "14",
+    "ruleset_used": false,
+    "user": "intern",
+    "hash_type": "md5",
+    "cracked": "99%"
+  }
+]

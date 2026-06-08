@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: crackq, labels: { app: crackq } }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: crackq } }
+  template:
+    metadata: { labels: { app: crackq } }
+    spec:
+      containers:
+        - name: crackq
+          image: ghcr.io/cognis-digital/crackq:latest
+          ports: [{ containerPort: 8000 }]
+          resources:
+            requests: { cpu: "50m", memory: "64Mi" }
+            limits: { cpu: "500m", memory: "256Mi" }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: crackq }
+spec:
+  selector: { app: crackq }
+  ports: [{ port: 80, targetPort: 8000 }]

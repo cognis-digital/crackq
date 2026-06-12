@@ -16,7 +16,7 @@
 </div>
 
 ```bash
-pip install cognis-crackq
+pip install "git+https://github.com/cognis-digital/crackq.git"
 crackq scan .            # → prioritized findings in seconds
 ```
 
@@ -48,7 +48,7 @@ Self-hosted password cracking queue — multi-user hashcat with audit log — wi
 ## Quick start
 
 ```bash
-pip install cognis-crackq
+pip install "git+https://github.com/cognis-digital/crackq.git"
 crackq --version
 crackq scan .                       # scan current project
 crackq scan . --format json         # machine-readable

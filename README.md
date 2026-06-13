@@ -20,6 +20,12 @@ pip install "git+https://github.com/cognis-digital/crackq.git"
 crackq scan .            # → prioritized findings in seconds
 ```
 
+<!-- cognis:layman:start -->
+## What is this?
+
+CrackQ is a self-hosted tool that lets security teams queue up password hash cracking jobs and track them with a full audit trail. You give it a list of hashed passwords and a wordlist of candidate passwords, and it tries to recover the original passwords using common techniques like capitalization, digit suffixes, and character substitution. It is designed for authorized red-team and penetration testing work — think of it as a lightweight, self-contained manager that wraps the same dictionary-attack logic used by professional tools like hashcat, but runs entirely on your own machine with no cloud account required.
+<!-- cognis:layman:end -->
+
 ## Contents
 
 - [Why crackq?](#why) · [Features](#features) · [Quick start](#quick-start) · [Example](#example) · [Architecture](#architecture) · [AI stack](#ai-stack) · [How it compares](#how-it-compares) · [Integrations](#integrations) · [Install anywhere](#install-anywhere) · [Related](#related) · [Contributing](#contributing)
@@ -45,6 +51,42 @@ Self-hosted password cracking queue — multi-user hashcat with audit log — wi
 <div align="right"><a href="#top">↑ back to top</a></div>
 
 <a name="quick-start"></a>
+<!-- cognis:install:start -->
+## Install
+
+`crackq` is source-available (not published to PyPI) — every method below installs
+straight from GitHub. Pick whichever you prefer; the one-line scripts auto-detect
+the best tool available on your machine.
+
+**One-liner (Linux / macOS):**
+```sh
+curl -fsSL https://raw.githubusercontent.com/cognis-digital/crackq/HEAD/install.sh | sh
+```
+
+**One-liner (Windows PowerShell):**
+```powershell
+irm https://raw.githubusercontent.com/cognis-digital/crackq/HEAD/install.ps1 | iex
+```
+
+**Or install manually — any one of:**
+```sh
+pipx install "git+https://github.com/cognis-digital/crackq.git"     # isolated (recommended)
+uv tool install "git+https://github.com/cognis-digital/crackq.git"  # uv
+pip install "git+https://github.com/cognis-digital/crackq.git"      # pip
+```
+
+**From source:**
+```sh
+git clone https://github.com/cognis-digital/crackq.git
+cd crackq && pip install .
+```
+
+Then run:
+```sh
+crackq --help
+```
+<!-- cognis:install:end -->
+
 ## Quick start
 
 ```bash

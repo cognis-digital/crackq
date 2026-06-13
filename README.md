@@ -20,6 +20,44 @@ pip install cognis-crackq
 crackq scan .            # → prioritized findings in seconds
 ```
 
+## Usage — step by step
+
+> Defensive / authorized password-recovery only. Use on hashes you own or are explicitly authorized to test.
+
+1. Install the CLI (Python 3.9+):
+
+   ```bash
+   pip install crackq         # or: pip install .   from a checkout
+   ```
+
+2. List supported algorithms first:
+
+   ```bash
+   crackq algos
+   ```
+
+3. Submit hashes and drain the queue in one shot — the `run` subcommand submits + runs + reports against a wordlist:
+
+   ```bash
+   crackq run --hash 5f4dcc3b5aa765d61d8327deb882cf99 --algorithm md5 --wordlist rockyou.txt --owner blue-team
+   ```
+
+   You can repeat `--hash`, supply `--hashfile`, pass inline `--words`, or use `--no-rules` to disable rule mangling.
+
+4. Read the result — `--format json` gives per-job state; exit code is `1` if any job failed (bad algo/error), `0` otherwise. Verify the tamper-evident audit log:
+
+   ```bash
+   crackq run --hashfile hashes.txt --wordlist rockyou.txt --format json | jq '.[] | {hash, state, plaintext}'
+   crackq audit --verify
+   ```
+
+5. Use it in an authorized credential-audit pipeline — every action is appended to the audit log (default in the temp dir; override with `--audit-log`):
+
+   ```bash
+   crackq --audit-log audit.jsonl run --hashfile hashes.txt --wordlist words.txt --owner soc
+   ```
+
+
 ## Contents
 
 - [Why crackq?](#why) · [Features](#features) · [Quick start](#quick-start) · [Example](#example) · [Architecture](#architecture) · [AI stack](#ai-stack) · [How it compares](#how-it-compares) · [Integrations](#integrations) · [Install anywhere](#install-anywhere) · [Related](#related) · [Contributing](#contributing)

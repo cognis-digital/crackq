@@ -54,8 +54,13 @@ def _print(obj, fmt: str) -> None:
 
 def _load_words(args) -> List[str]:
     if args.wordlist:
+        if not os.path.isfile(args.wordlist):
+            raise FileNotFoundError(
+                f"wordlist file not found: {args.wordlist!r}"
+            )
         with open(args.wordlist, "r", encoding="utf-8", errors="replace") as f:
-            return [ln.rstrip("\n\r") for ln in f]
+            words = [ln.rstrip("\n\r") for ln in f if ln.strip()]
+        return words
     if args.words:
         return list(args.words)
     return []
@@ -64,16 +69,26 @@ def _load_words(args) -> List[str]:
 def _gather_hashes(args) -> List[str]:
     hashes: List[str] = list(args.hash or [])
     if getattr(args, "hashfile", None):
+        if not os.path.isfile(args.hashfile):
+            raise FileNotFoundError(
+                f"hash file not found: {args.hashfile!r}"
+            )
         with open(args.hashfile, "r", encoding="utf-8") as f:
             hashes += [ln.strip() for ln in f if ln.strip()]
     return hashes
 
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog=TOOL_NAME, description="Self-hosted password cracking queue.")
-    p.add_argument("--version", action="version", version=f"{TOOL_NAME} {TOOL_VERSION}")
+    p = argparse.ArgumentParser(
+        prog=TOOL_NAME,
+        description="Self-hosted password cracking queue.",
+    )
+    p.add_argument(
+        "--version", action="version", version=f"{TOOL_NAME} {TOOL_VERSION}"
+    )
     p.add_argument("--format", choices=("table", "json"), default="table")
-    p.add_argument("--audit-log", default=os.path.join(tempfile.gettempdir(), "crackq_audit.jsonl"))
+    _default_log = os.path.join(tempfile.gettempdir(), "crackq_audit.jsonl")
+    p.add_argument("--audit-log", default=_default_log)
     sub = p.add_subparsers(dest="cmd", required=True)
 
     r = sub.add_parser("run", help="submit hashes and drain the queue")
@@ -143,7 +158,22 @@ def main(argv: Optional[List[str]] = None) -> int:
         if args.cmd == "algos":
             return _cmd_algos(args)
     except FileNotFoundError as exc:
-        print(f"error: {exc}", file=sys.stderr)
+        print(f"error: file not found — {exc}", file=sys.stderr)
+        return 2
+    except PermissionError as exc:
+        print(f"error: permission denied — {exc}", file=sys.stderr)
+        return 2
+    except (OSError, IOError) as exc:
+        print(f"error: I/O error — {exc}", file=sys.stderr)
+        return 2
+    except json.JSONDecodeError as exc:
+        print(
+            f"error: malformed JSON in audit log — {exc}",
+            file=sys.stderr,
+        )
+        return 2
+    except AuditError as exc:
+        print(f"error: audit log corrupted — {exc}", file=sys.stderr)
         return 2
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)

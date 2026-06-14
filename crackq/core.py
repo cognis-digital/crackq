@@ -74,7 +74,17 @@ def crack_hash(
     Returns a dict describing the outcome (cracked plaintext or not) plus the
     number of candidates tried -- the same accounting a real queue reports.
     """
+    if not isinstance(digest, str) or not digest.strip():
+        raise ValueError("digest must be a non-empty string")
     digest = digest.strip().lower()
+    if not all(c in "0123456789abcdef" for c in digest):
+        raise ValueError(
+            f"digest contains non-hex characters: {digest!r}"
+        )
+    if max_candidates is not None and max_candidates < 1:
+        raise ValueError(
+            f"max_candidates must be a positive integer, got {max_candidates}"
+        )
     algo = (algorithm or detect_algorithm(digest) or "").lower()
     if algo not in _ALGOS:
         raise ValueError(
@@ -165,10 +175,21 @@ class AuditLog:
         if not os.path.exists(self.path):
             return last
         with open(self.path, "r", encoding="utf-8") as f:
-            for line in f:
+            for lineno, line in enumerate(f, 1):
                 line = line.strip()
-                if line:
-                    last = json.loads(line)["this"]
+                if not line:
+                    continue
+                try:
+                    rec = json.loads(line)
+                except json.JSONDecodeError as exc:
+                    raise AuditError(
+                        f"audit log line {lineno} is not valid JSON: {exc}"
+                    ) from exc
+                if "this" not in rec:
+                    raise AuditError(
+                        f"audit log line {lineno} missing 'this' field"
+                    )
+                last = rec["this"]
         return last
 
     @staticmethod
@@ -195,10 +216,16 @@ class AuditLog:
         if not os.path.exists(self.path):
             return out
         with open(self.path, "r", encoding="utf-8") as f:
-            for line in f:
+            for lineno, line in enumerate(f, 1):
                 line = line.strip()
-                if line:
+                if not line:
+                    continue
+                try:
                     out.append(json.loads(line))
+                except json.JSONDecodeError as exc:
+                    raise AuditError(
+                        f"audit log line {lineno} is not valid JSON: {exc}"
+                    ) from exc
         return out
 
     def verify(self) -> bool:
@@ -225,8 +252,10 @@ class CrackQ:
         self._seq = itertools.count()
 
     def load_wordlist(self, path: str) -> int:
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"wordlist not found: {path!r}")
         with open(path, "r", encoding="utf-8", errors="replace") as f:
-            self.wordlist = [ln.rstrip("\n\r") for ln in f]
+            self.wordlist = [ln.rstrip("\n\r") for ln in f if ln.strip()]
         return len(self.wordlist)
 
     def submit(
@@ -237,9 +266,20 @@ class CrackQ:
         rules: bool = True,
         priority: int = 5,
     ) -> Job:
+        if not isinstance(owner, str) or not owner.strip():
+            raise ValueError("owner must be a non-empty string")
+        if not isinstance(priority, int) or isinstance(priority, bool):
+            raise ValueError(
+                f"priority must be an integer, got {type(priority).__name__}"
+            )
+        if algorithm is not None and algorithm not in _ALGOS:
+            raise ValueError(
+                f"unknown algorithm {algorithm!r}; "
+                f"choose one of {supported_algorithms()}"
+            )
         job = Job(
             hash=digest.strip().lower(),
-            owner=owner,
+            owner=owner.strip(),
             algorithm=algorithm,
             rules=rules,
             priority=priority,

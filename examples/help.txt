@@ -1,0 +1,18 @@
+$ crackq-emit --help
+
+usage: crackq [-h] [--version] [--format {table,json}] [--audit-log AUDIT_LOG]
+              {run,audit,algos} ...
+
+Self-hosted password cracking queue.
+
+positional arguments:
+  {run,audit,algos}
+    run                 submit hashes and drain the queue
+    audit               print or verify the audit log
+    algos               list supported algorithms
+
+options:
+  -h, --help            show this help message and exit
+  --version             show program's version number and exit
+  --format {table,json}
+  --audit-log AUDIT_LOG

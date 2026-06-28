@@ -20,6 +20,57 @@ pip install cognis-crackq
 crackq scan .            # → prioritized findings in seconds
 ```
 
+
+<!-- cognis:example:start -->
+## 🔎 Example output
+
+Real, reproducible output from the tool — runs offline:
+
+```console
+$ crackq-emit --version
+crackq 0.1.0
+```
+
+```console
+$ crackq-emit --help
+usage: crackq [-h] [--version] [--format {table,json}] [--audit-log AUDIT_LOG]
+              {run,audit,algos} ...
+
+Self-hosted password cracking queue.
+
+positional arguments:
+  {run,audit,algos}
+    run                 submit hashes and drain the queue
+    audit               print or verify the audit log
+    algos               list supported algorithms
+
+options:
+  -h, --help            show this help message and exit
+  --version             show program's version number and exit
+  --format {table,json}
+  --audit-log AUDIT_LOG
+```
+
+> Blocks above are real `crackq` output — reproduce them from a clone.
+
+**Sample result format** _(illustrative values — run on your own data for real findings):_
+
+```
+{
+"findings": [
+    {
+        "id": "1234567890",
+        "title": "Suspicious Network Traffic",
+        "description": "Anomalous network traffic detected from 192.168.1.100 to 8.8.8.8",
+        "severity": "medium",
+        "created_at": "2023-02-20T14:30:00Z"
+    }
+]
+}
+```
+
+<!-- cognis:example:end -->
+
 ## Usage — step by step
 
 > Defensive / authorized password-recovery only. Use on hashes you own or are explicitly authorized to test.

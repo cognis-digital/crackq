@@ -1,0 +1,3 @@
+$ crackq-emit --version
+
+crackq 0.1.0

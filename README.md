@@ -17,7 +17,7 @@
 
 ```bash
 pip install cognis-crackq
-crackq scan .            # → prioritized findings in seconds
+crackq run --hash 5f4dcc3b5aa765d61d8327deb882cf99 --algorithm md5 --words password   # → cracked in ms
 ```
 
 
@@ -111,7 +111,7 @@ options:
 
 ## Contents
 
-- [Why crackq?](#why) · [Features](#features) · [Quick start](#quick-start) · [Example](#example) · [Architecture](#architecture) · [AI stack](#ai-stack) · [How it compares](#how-it-compares) · [Integrations](#integrations) · [Install anywhere](#install-anywhere) · [Related](#related) · [Contributing](#contributing)
+- [Why crackq?](#why) · [Features](#features) · [Quick start](#quick-start) · [Example](#example) · [Architecture](#architecture) · [Demos](#demos) · [AI stack](#ai-stack) · [How it compares](#how-it-compares) · [Integrations](#integrations) · [Install anywhere](#install-anywhere) · [Related](#related) · [Contributing](#contributing)
 
 <a name="why"></a>
 ## Why crackq?
@@ -139,9 +139,10 @@ Self-hosted password cracking queue — multi-user hashcat with audit log — wi
 ```bash
 pip install cognis-crackq
 crackq --version
-crackq scan .                       # scan current project
-crackq scan . --format json         # machine-readable
-crackq scan . --fail-on high        # CI gate (non-zero exit)
+crackq algos                                                   # list supported algorithms
+crackq run --hash <digest> --wordlist words.txt --owner blue   # submit + drain the queue
+crackq run --hashfile hashes.txt --wordlist words.txt --format json   # machine-readable
+crackq audit --verify                                          # check the tamper-evident log
 ```
 
 <div align="right"><a href="#top">↑ back to top</a></div>
@@ -150,11 +151,15 @@ crackq scan . --fail-on high        # CI gate (non-zero exit)
 ## Example
 
 ```text
-$ crackq scan .
-  [HIGH    ] CRA-001  example finding             (./src/app.py)
-  [MEDIUM  ] CRA-002  another signal              (./config.yaml)
+$ crackq run --hashfile hashes.txt --wordlist words.txt --owner blue-team
+hash              owner      algorithm  state      plaintext  candidates_tried
+----------------  ---------  ---------  ---------  ---------  ----------------
+201f00b5ca5d...   blue-team  md5        cracked    welcome1   74
+17e689a225fa...   blue-team  sha256     exhausted             255
 
-  2 findings · risk score 5 · 38ms
+$ crackq audit --verify
+verified: True
+records: 5
 ```
 
 <div align="right"><a href="#top">↑ back to top</a></div>
@@ -164,9 +169,38 @@ $ crackq scan .
 
 ```mermaid
 flowchart LR
-  IN[target / manifest] --> P[crackq<br/>checks + rules]
-  P --> OUT[findings (JSON / SARIF)]
+  IN[hashes + owner + priority] --> Q[CrackQ<br/>priority queue]
+  WL[(wordlist)] --> ENG[crack_hash<br/>dictionary + rules]
+  Q --> ENG
+  ENG --> OUT[jobs: cracked / exhausted<br/>JSON / table]
+  Q --> AUD[(hash-chained audit log)]
 ```
+
+See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full design.
+
+<div align="right"><a href="#top">↑ back to top</a></div>
+
+<a name="demos"></a>
+## Demos
+
+Five runnable, **offline** scenarios in [`demos/`](demos/) — each targets a
+different audience and uses the real crackq API (no network, no external
+engine). They exit 0 and double as smoke tests. See [`docs/DEMOS.md`](docs/DEMOS.md).
+
+```bash
+PYTHONUTF8=1 python demos/run_all.py                       # all five
+PYTHONUTF8=1 python demos/02_secops_priority_queue.py      # or just one
+```
+
+| # | Scenario | Audience | Shows |
+|---|----------|----------|-------|
+| 1 | [`01_red_team_recovery.py`](demos/01_red_team_recovery.py) | Red teams / pentesters | Queue a dump, crack with rules, report per-account verdicts |
+| 2 | [`02_secops_priority_queue.py`](demos/02_secops_priority_queue.py) | Security operations | Multi-user priority scheduling; incident jumps the line |
+| 3 | [`03_ir_audit_chain.py`](demos/03_ir_audit_chain.py) | Incident response / compliance | Tamper-evident audit chain; `verify()` catches a forged record |
+| 4 | [`04_platform_admin_capacity.py`](demos/04_platform_admin_capacity.py) | Queue / platform admins | Candidate counts + timing — the cost of rules |
+| 5 | [`05_cli_pipeline.py`](demos/05_cli_pipeline.py) | Automation / CI | Drive the real CLI, parse JSON, feed downstream tooling |
+
+> Authorized / defensive use only — every demo hash is generated from a known plaintext we own.
 
 <div align="right"><a href="#top">↑ back to top</a></div>
 

@@ -22,6 +22,15 @@ crackq run --hash 5f4dcc3b5aa765d61d8327deb882cf99 --algorithm md5 --words passw
 
 
 <!-- cognis:example:start -->
+
+## Watch the walkthrough
+
+A full narrated tour — setup, the tool in action, and every demo scenario:
+
+[![Watch the crackq walkthrough](media/walkthrough-thumb.png)](https://github.com/cognis-digital/crackq/releases/download/walkthrough-v1/walkthrough.mp4)
+
+▶ **[Watch the walkthrough (MP4)](https://github.com/cognis-digital/crackq/releases/download/walkthrough-v1/walkthrough.mp4)**
+
 ## 🔎 Example output
 
 Real, reproducible output from the tool — runs offline:

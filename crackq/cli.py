@@ -1,9 +1,8 @@
 """Command line interface for CRACKQ.
 
 Subcommands:
-  submit   queue a hash for an owner (then optionally run)
-  run      drain the queue against a wordlist and report results
-  status   show queued/finished jobs (jobs persist for the process via submit+run)
+  run      submit hashes and drain the queue against a wordlist (--metrics for totals)
+  detect   report the likely algorithm(s) for one or more hashes
   audit    print or verify the tamper-evident audit log
   algos    list supported hash algorithms
 
@@ -24,6 +23,9 @@ from .core import (
     CrackQ,
     AuditLog,
     AuditError,
+    detect_algorithm,
+    detect_algorithms,
+    is_hex_digest,
     supported_algorithms,
 )
 
@@ -85,9 +87,15 @@ def build_parser() -> argparse.ArgumentParser:
     r.add_argument("--words", nargs="*", help="inline candidate words")
     r.add_argument("--no-rules", action="store_true", help="disable rule mangling")
     r.add_argument("--priority", type=int, default=5)
+    r.add_argument("--metrics", action="store_true",
+                   help="print aggregate queue metrics instead of the per-job table")
 
     a = sub.add_parser("audit", help="print or verify the audit log")
     a.add_argument("--verify", action="store_true")
+
+    d = sub.add_parser("detect", help="report the likely algorithm(s) for a hash")
+    d.add_argument("--hash", action="append", required=True,
+                   help="hash digest to identify (repeatable)")
 
     sub.add_parser("algos", help="list supported algorithms")
     return p
@@ -108,7 +116,10 @@ def _cmd_run(args) -> int:
                  rules=not args.no_rules, priority=args.priority)
     q.run_all()
     rows = [j.to_dict() for j in q.status()]
-    _print(rows, args.format)
+    if args.metrics:
+        _print(q.metrics(), args.format)
+    else:
+        _print(rows, args.format)
     # non-zero if any job failed (bad algo / error), 0 if all ran (even if uncracked)
     return 1 if any(j["state"] == "failed" for j in rows) else 0
 
@@ -127,6 +138,21 @@ def _cmd_audit(args) -> int:
     return 0
 
 
+def _cmd_detect(args) -> int:
+    rows = []
+    for h in args.hash:
+        h = h.strip()
+        rows.append({
+            "hash": h,
+            "valid_hex": is_hex_digest(h),
+            "likely": detect_algorithm(h) or "-",
+            "candidates": ",".join(detect_algorithms(h)) or "-",
+        })
+    _print(rows, args.format)
+    # non-zero if none of the supplied hashes could be identified
+    return 0 if any(r["likely"] != "-" for r in rows) else 1
+
+
 def _cmd_algos(args) -> int:
     _print([{"algorithm": a} for a in supported_algorithms()], args.format)
     return 0
@@ -140,6 +166,8 @@ def main(argv: Optional[List[str]] = None) -> int:
             return _cmd_run(args)
         if args.cmd == "audit":
             return _cmd_audit(args)
+        if args.cmd == "detect":
+            return _cmd_detect(args)
         if args.cmd == "algos":
             return _cmd_algos(args)
     except FileNotFoundError as exc:

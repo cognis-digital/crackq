@@ -20,21 +20,54 @@ import hashlib
 import itertools
 import json
 import os
+import re
 import time
 import uuid
 from dataclasses import dataclass, field, asdict
 from enum import Enum
 from typing import Dict, Iterable, Iterator, List, Optional
 
+TOOL_NAME = "crackq"
+
+
+def _read_version() -> str:
+    """Read the shipped VERSION file; fall back to a sane default."""
+    here = os.path.dirname(os.path.abspath(__file__))
+    for candidate in (
+        os.path.join(here, os.pardir, "VERSION"),
+        os.path.join(here, "VERSION"),
+    ):
+        try:
+            with open(candidate, "r", encoding="utf-8") as f:
+                v = f.read().strip()
+                if v:
+                    return v
+        except OSError:
+            continue
+    return "0.1.1"
+
+
+TOOL_VERSION = _read_version()
+
 _ALGOS = {
     "md5": hashlib.md5,
     "sha1": hashlib.sha1,
+    "sha224": hashlib.sha224,
     "sha256": hashlib.sha256,
+    "sha384": hashlib.sha384,
     "sha512": hashlib.sha512,
 }
 
-# Hex digest length -> likely algorithm, used to auto-detect.
-_LEN_HINT = {32: "md5", 40: "sha1", 64: "sha256", 128: "sha512"}
+# Hex digest length -> candidate algorithm(s), used to auto-detect. Some lengths
+# are ambiguous (e.g. 56 hex chars = sha224); we return the first/most common.
+_LEN_HINT = {32: "md5", 40: "sha1", 56: "sha224", 64: "sha256", 96: "sha384", 128: "sha512"}
+
+# Every algorithm that can produce a digest of a given hex length (for detect_all).
+_LEN_ALGOS: Dict[int, List[str]] = {}
+for _name, _fn in _ALGOS.items():
+    _LEN_ALGOS.setdefault(_fn().digest_size * 2, []).append(_name)
+
+_HEX_RE = re.compile(r"^[0-9a-f]+$")
 
 _LEET = str.maketrans({"a": "4", "e": "3", "i": "1", "o": "0", "s": "5", "t": "7"})
 
@@ -43,13 +76,48 @@ def supported_algorithms() -> List[str]:
     return sorted(_ALGOS)
 
 
+def is_hex_digest(digest: str) -> bool:
+    """True if the string is a plausible lowercase hex digest (even length)."""
+    d = digest.strip().lower()
+    return bool(d) and len(d) % 2 == 0 and bool(_HEX_RE.match(d))
+
+
 def detect_algorithm(digest: str) -> Optional[str]:
-    """Guess the algorithm from a hex digest length."""
-    return _LEN_HINT.get(len(digest.strip()))
+    """Guess the most likely algorithm from a hex digest length.
+
+    Returns None if the string is not a valid hex digest or the length does
+    not correspond to any supported algorithm.
+    """
+    d = digest.strip().lower()
+    if not is_hex_digest(d):
+        return None
+    return _LEN_HINT.get(len(d))
+
+
+def detect_algorithms(digest: str) -> List[str]:
+    """Return *all* supported algorithms whose output matches this length.
+
+    A digest length can be ambiguous (e.g. 64 hex chars is sha256, but future
+    algorithms could collide); this exposes every candidate so a caller can try
+    each one rather than trusting a single guess.
+    """
+    d = digest.strip().lower()
+    if not is_hex_digest(d):
+        return []
+    return sorted(_LEN_ALGOS.get(len(d), []))
+
+
+# Suffixes appended by the append/capitalize+append rules.
+_SUFFIXES = ("1", "12", "123", "!", "!!", "01", "2023", "2024", "2025")
 
 
 def _candidates(word: str, rules: bool) -> Iterator[str]:
-    """Yield the base word and, if rules enabled, common mangles."""
+    """Yield the base word and, if rules enabled, common mangles.
+
+    Duplicates are *not* de-duplicated here (that would cost memory on large
+    lists); ``candidates_tried`` therefore counts raw attempts, which is the
+    honest accounting a real engine reports.
+    """
     yield word
     if not rules:
         return
@@ -57,7 +125,8 @@ def _candidates(word: str, rules: bool) -> Iterator[str]:
     yield word.upper()
     yield word[::-1]
     yield word.translate(_LEET)
-    for d in ("1", "12", "123", "!", "2024", "2025"):
+    yield word.capitalize().translate(_LEET)
+    for d in _SUFFIXES:
         yield word + d
         yield word.capitalize() + d
 
@@ -73,18 +142,43 @@ def crack_hash(
 
     Returns a dict describing the outcome (cracked plaintext or not) plus the
     number of candidates tried -- the same accounting a real queue reports.
+
+    Raises ``ValueError`` if the digest is not valid hex, the algorithm is
+    unknown/undetectable, the digest length does not match the chosen
+    algorithm, or ``max_candidates`` is not a positive integer.
     """
+    if not isinstance(digest, str):
+        raise ValueError(f"digest must be a string, got {type(digest).__name__}")
     digest = digest.strip().lower()
+    if not digest:
+        raise ValueError("digest is empty")
+    if not is_hex_digest(digest):
+        raise ValueError(
+            f"digest is not valid hexadecimal: {digest[:16]!r}"
+            + ("..." if len(digest) > 16 else "")
+        )
+    if max_candidates is not None and (not isinstance(max_candidates, int) or max_candidates <= 0):
+        raise ValueError("max_candidates must be a positive integer or None")
+
     algo = (algorithm or detect_algorithm(digest) or "").lower()
     if algo not in _ALGOS:
         raise ValueError(
             f"unknown or undetectable algorithm for hash (len={len(digest)}); "
             f"specify one of {supported_algorithms()}"
         )
+    expected_len = _ALGOS[algo]().digest_size * 2
+    if len(digest) != expected_len:
+        raise ValueError(
+            f"digest length {len(digest)} does not match {algo} "
+            f"(expected {expected_len} hex chars)"
+        )
+
     h = _ALGOS[algo]
     tried = 0
     start = time.time()
     for word in wordlist:
+        if not isinstance(word, str):
+            raise ValueError(f"wordlist entries must be strings, got {type(word).__name__}")
         word = word.rstrip("\n\r")
         if not word:
             continue
@@ -121,6 +215,17 @@ class JobState(str, Enum):
     CRACKED = "cracked"
     EXHAUSTED = "exhausted"
     FAILED = "failed"
+    CANCELLED = "cancelled"
+
+    @property
+    def is_terminal(self) -> bool:
+        """True once the job will not transition further."""
+        return self in (
+            JobState.CRACKED,
+            JobState.EXHAUSTED,
+            JobState.FAILED,
+            JobState.CANCELLED,
+        )
 
 
 @dataclass
@@ -237,10 +342,22 @@ class CrackQ:
         rules: bool = True,
         priority: int = 5,
     ) -> Job:
+        if not isinstance(owner, str) or not owner.strip():
+            raise ValueError("owner must be a non-empty string")
+        if not isinstance(priority, int) or isinstance(priority, bool):
+            raise ValueError("priority must be an integer")
+        if algorithm is not None and algorithm.lower() not in _ALGOS:
+            raise ValueError(
+                f"unknown algorithm {algorithm!r}; "
+                f"choose from {supported_algorithms()}"
+            )
+        digest = (digest or "").strip().lower()
+        if not is_hex_digest(digest):
+            raise ValueError(f"digest is not valid hexadecimal: {digest[:16]!r}")
         job = Job(
-            hash=digest.strip().lower(),
+            hash=digest,
             owner=owner,
-            algorithm=algorithm,
+            algorithm=algorithm.lower() if algorithm else None,
             rules=rules,
             priority=priority,
         )
@@ -249,6 +366,30 @@ class CrackQ:
             "submit", owner, job_id=job.id, hash=job.hash,
             algorithm=algorithm, priority=priority,
         )
+        return job
+
+    def cancel(self, job_id: str) -> Job:
+        """Cancel a QUEUED job so the scheduler skips it.
+
+        Raises KeyError for an unknown id and ValueError if the job has already
+        started or finished (only queued work can be cancelled).
+        """
+        job = self.jobs.get(job_id)
+        if job is None:
+            raise KeyError(f"no such job: {job_id}")
+        if job.state != JobState.QUEUED:
+            raise ValueError(
+                f"cannot cancel job {job_id} in state {job.state.value}"
+            )
+        job.state = JobState.CANCELLED
+        self.audit.append("cancel", job.owner, job_id=job.id)
+        return job
+
+    def get(self, job_id: str) -> Job:
+        """Fetch a job by id, raising KeyError if it does not exist."""
+        job = self.jobs.get(job_id)
+        if job is None:
+            raise KeyError(f"no such job: {job_id}")
         return job
 
     def _next(self) -> Optional[Job]:
@@ -298,3 +439,52 @@ class CrackQ:
 
     def status(self) -> List[Job]:
         return sorted(self.jobs.values(), key=lambda j: j.created_at)
+
+    def metrics(self) -> Dict[str, object]:
+        """Aggregate queue accounting for capacity planning / dashboards."""
+        jobs = list(self.jobs.values())
+        by_state: Dict[str, int] = {s.value: 0 for s in JobState}
+        for j in jobs:
+            by_state[j.state.value] += 1
+        total_tried = sum(j.candidates_tried for j in jobs)
+        total_elapsed = round(sum(j.elapsed_sec for j in jobs), 6)
+        return {
+            "jobs": len(jobs),
+            "by_state": by_state,
+            "candidates_tried": total_tried,
+            "elapsed_sec": total_elapsed,
+            "cracked": by_state[JobState.CRACKED.value],
+            "wordlist_size": len(self.wordlist),
+        }
+
+
+def scan(target: str, **kwargs) -> Dict[str, object]:
+    """Uniform single-shot entry point (the Cognis Neural Suite ``scan`` verb).
+
+    ``target`` is a hex digest; ``wordlist`` (list or path) and the usual
+    ``crack_hash`` keyword arguments are accepted. This is the function the MCP
+    server exposes so crackq presents the same ``scan(target)`` shape as the
+    rest of the suite.
+    """
+    wordlist = kwargs.pop("wordlist", None)
+    if isinstance(wordlist, str):
+        with open(wordlist, "r", encoding="utf-8", errors="replace") as f:
+            wordlist = [ln.rstrip("\n\r") for ln in f]
+    return crack_hash(target, wordlist or [], **kwargs)
+
+
+__all__ = [
+    "TOOL_NAME",
+    "TOOL_VERSION",
+    "supported_algorithms",
+    "is_hex_digest",
+    "detect_algorithm",
+    "detect_algorithms",
+    "crack_hash",
+    "scan",
+    "JobState",
+    "Job",
+    "AuditError",
+    "AuditLog",
+    "CrackQ",
+]

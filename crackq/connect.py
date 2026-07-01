@@ -23,11 +23,20 @@ def map_record(rec: dict) -> dict:
     """Tool-specific mapping (fleet-contributed, validated; safe-fallback)."""
     try:
         out = dict(rec)
-        out['title'] = rec.get('hash', '') + ' ' + rec.get('owner', '')
-        out['severity'] = rec.get('status', 'info')
+        # crackq job dicts use `state`/`algorithm`; accept the older
+        # `status`/`algo` keys too for forward/backward compatibility.
+        state = rec.get('state', rec.get('status', 'info'))
+        algo = rec.get('algorithm', rec.get('algo', ''))
+        # A cracked credential is a finding; an exhausted/queued one is info.
+        severity = 'high' if state == 'cracked' else 'info'
+        out['title'] = (rec.get('hash', '') + ' ' + rec.get('owner', '')).strip()
+        out['severity'] = severity
         out['type'] = 'hash'
-        out['description'] = f"Hash {rec.get('hash', '')} for owner {rec.get('owner', '')}"
-        out['tags'] = [rec.get('algo', ''), rec.get('owner', '')]
+        out['description'] = (
+            f"Hash {rec.get('hash', '')} for owner {rec.get('owner', '')} "
+            f"({state}, {algo})"
+        )
+        out['tags'] = [t for t in (algo, rec.get('owner', ''), state) if t]
         out['ipv4'] = rec.get('ipv4')
         out['domain'] = rec.get('domain')
         out['url'] = rec.get('url')

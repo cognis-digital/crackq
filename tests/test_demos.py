@@ -22,6 +22,21 @@ SCENARIOS = [
     "03_ir_audit_chain",
     "04_platform_admin_capacity",
     "05_cli_pipeline",
+    "06_hash_type_detection",
+    "07_job_cancellation",
+    "08_queue_metrics",
+    "09_algorithm_coverage",
+    "10_rules_vs_norules",
+    "11_max_candidates_budget",
+    "12_error_handling",
+    "13_multi_tenant_fairness",
+    "14_audit_replay",
+    "15_wordlist_file",
+    "16_scan_entrypoint",
+    "17_cli_detect",
+    "18_cli_metrics",
+    "19_password_policy_report",
+    "20_end_to_end_service",
 ]
 
 

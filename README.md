@@ -90,10 +90,18 @@ options:
    pip install crackq         # or: pip install .   from a checkout
    ```
 
-2. List supported algorithms first:
+2. List supported algorithms first (md5 · sha1 · sha224 · sha256 · sha384 · sha512):
 
    ```bash
    crackq algos
+   ```
+
+   Not sure what a hash is? Identify it before you spend cycles — `detect` reports
+   the likely algorithm and exits `1` if nothing was recognised (so a pipeline can
+   gate the crack step):
+
+   ```bash
+   crackq detect --hash 5f4dcc3b5aa765d61d8327deb882cf99
    ```
 
 3. Submit hashes and drain the queue in one shot — the `run` subcommand submits + runs + reports against a wordlist:
@@ -108,6 +116,7 @@ options:
 
    ```bash
    crackq run --hashfile hashes.txt --wordlist rockyou.txt --format json | jq '.[] | {hash, state, plaintext}'
+   crackq run --hashfile hashes.txt --wordlist rockyou.txt --metrics --format json   # aggregate rollup for a dashboard
    crackq audit --verify
    ```
 
@@ -149,8 +158,10 @@ Self-hosted password cracking queue — multi-user hashcat with audit log — wi
 pip install cognis-crackq
 crackq --version
 crackq algos                                                   # list supported algorithms
+crackq detect --hash <digest>                                  # identify the likely algorithm(s)
 crackq run --hash <digest> --wordlist words.txt --owner blue   # submit + drain the queue
 crackq run --hashfile hashes.txt --wordlist words.txt --format json   # machine-readable
+crackq run --hashfile hashes.txt --wordlist words.txt --metrics       # aggregate metrics
 crackq audit --verify                                          # check the tamper-evident log
 ```
 

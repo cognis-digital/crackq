@@ -1,0 +1,11 @@
+name: crackq CodeQL config
+
+# The demo scenarios in demos/ intentionally print the plaintexts they recover
+# from hashes we generated ourselves — displaying the cracked value is the whole
+# point of a password-recovery demonstration, and every "secret" is a throwaway
+# we own (never a real credential). They are illustrative scripts, not shipped
+# library code, so they are excluded from analysis to avoid false-positive
+# "clear-text logging of sensitive data" alerts. The library (crackq/) and tests
+# remain fully scanned.
+paths-ignore:
+  - demos

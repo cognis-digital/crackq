@@ -31,25 +31,40 @@ flowchart LR
 
 ### Crack engine (`crackq/core.py` — `crack_hash`)
 An honest dictionary attack over an attacker-supplied wordlist using stdlib
-`hashlib` (`md5`, `sha1`, `sha256`, `sha512`). For each word it yields the base
-candidate and — when `rules=True` — common mangles (capitalize, upper, reverse,
-leet, and digit/`!`/year appends), the same primitive a real queue hands to
-`hashcat -a 0`. It returns the outcome plus `candidates_tried` and `elapsed_sec`
-so every job is accountable. Algorithm is auto-detected from digest length when
-not given (`detect_algorithm`).
+`hashlib` (`md5`, `sha1`, `sha224`, `sha256`, `sha384`, `sha512`). For each word
+it yields the base candidate and — when `rules=True` — common mangles
+(capitalize, upper, reverse, leet, and digit/`!`/year appends), the same
+primitive a real queue hands to `hashcat -a 0`. It returns the outcome plus
+`candidates_tried` and `elapsed_sec` so every job is accountable. Inputs are
+validated (hex-only digests, positive `max_candidates`, string wordlist
+entries). Algorithm is auto-detected from digest length when not given
+(`detect_algorithm` / `detect_algorithms`), and `scan(target, **kwargs)` is a
+thin single-shot wrapper exposing the suite-wide `scan` verb.
 
 ### Job & JobState (`crackq/core.py`)
 A `Job` is a queued work item: `hash`, `owner`, `algorithm`, `rules`,
 `priority` (lower = sooner), plus result fields filled in as it runs. `JobState`
-moves `QUEUED → RUNNING → {CRACKED, EXHAUSTED, FAILED}`.
+moves `QUEUED → RUNNING → {CRACKED, EXHAUSTED, FAILED}`, and a queued job may be
+`CANCELLED` before it starts; `JobState.is_terminal` marks the settled states.
 
 ### Queue & scheduler (`crackq/core.py` — `CrackQ`)
-The multi-user core. `submit()` enqueues a job for an owner and logs it;
-`_next()` selects the next job by `(priority, created_at)` so an incident job
-jumps ahead of routine work while equal-priority jobs stay FIFO; `run_job()`
-runs one job and records the transition; `run_all()` drains the queue;
-`status()` lists jobs. `load_wordlist()` reads a wordlist file once and shares
-it across jobs.
+The multi-user core. `submit()` validates and enqueues a job for an owner and
+logs it; `_next()` selects the next job by `(priority, created_at)` so an
+incident job jumps ahead of routine work while equal-priority jobs stay FIFO;
+`run_job()` runs one job and records the transition; `run_all()` drains the
+queue; `cancel()` skips a still-queued job; `get()` fetches by id; `status()`
+lists jobs; `metrics()` returns an aggregate rollup (counts by state, candidates
+tried, elapsed, wordlist size) for dashboards. `load_wordlist()` reads a
+wordlist file once and shares it across jobs.
+
+### Password analytics (`crackq/analyze.py`)
+Turns recovered plaintexts into an actionable audit — a companion to cracking,
+not part of the crack loop. `analyze_password()` reports length, character
+classes, a charset-entropy *estimate* (`length × log2(pool)`, an upper bound),
+a strength tier, and weakening patterns (year/digit suffixes, interior-leet,
+keyboard walks, repeats). `analyze_batch()` aggregates a set with reuse
+detection and plain-English recommendations, and `crack_report()` folds finished
+jobs (or their dict rows) into crack-rate + composition. Pure stdlib, no network.
 
 ### Audit log (`crackq/core.py` — `AuditLog`)
 An append-only, hash-chained JSONL log. Each record stores the SHA-256 of the
@@ -70,9 +85,14 @@ flowchart LR
 
 ### CLI (`crackq/cli.py`)
 The scriptable front door. `run` submits hashes (`--hash`/`--hashfile`/`--words`/
-`--wordlist`) and drains the queue, emitting `table` or `json`; exit code is `1`
-if any job failed (bad algo / error), `0` otherwise. `audit` prints or
-`--verify`s the log; `algos` lists supported algorithms.
+`--wordlist`) and drains the queue, with `--metrics` (queue rollup) and
+`--report` (strength rollup); exit code is `1` if any job failed (bad algo /
+error), `0` otherwise. `scan` cracks a single digest (exit `0` on a hit, `1`
+when exhausted); `detect` identifies algorithms; `analyze` scores recovered
+plaintexts; `audit` prints or `--verify`s the log; `algos` lists supported
+algorithms; `mcp` launches the MCP server. The global `--format {table,json,csv}`
+switch renders every subcommand and is accepted before *or* after the
+subcommand.
 
 ### Interop (`crackq/connect.py`, `crackq/mcp_server.py`)
 `crackq-emit` maps the JSON output to the canonical `Finding` and forwards it via

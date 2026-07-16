@@ -24,7 +24,7 @@ dependencies = []
 connect = ["cognis-connect @ git+https://github.com/cognis-digital/cognis-connect.git"]
 mcp = ["mcp>=1.0"]
 web = ["fastapi>=0.110", "uvicorn>=0.27"]
-dev = ["pytest>=8.0"]
+dev = ["pytest>=8.0", "ruff>=0.5"]
 
 [project.urls]
 Homepage = "https://cognis.digital"

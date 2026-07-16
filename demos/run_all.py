@@ -18,6 +18,7 @@ SCENARIOS = [
     "03_ir_audit_chain",
     "04_platform_admin_capacity",
     "05_cli_pipeline",
+    "06_password_analytics",
 ]
 
 

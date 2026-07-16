@@ -36,27 +36,32 @@ A full narrated tour — setup, the tool in action, and every demo scenario:
 Real, reproducible output from the tool — runs offline:
 
 ```console
-$ crackq-emit --version
-crackq 0.1.0
+$ crackq --version
+crackq 1.6.9
 ```
 
 ```console
-$ crackq-emit --help
-usage: crackq [-h] [--version] [--format {table,json}] [--audit-log AUDIT_LOG]
-              {run,audit,algos} ...
+$ crackq --help
+usage: crackq [-h] [--version] [--format {table,json,csv}]
+              [--audit-log AUDIT_LOG]
+              {run,scan,audit,detect,analyze,algos,mcp} ...
 
 Self-hosted password cracking queue.
 
 positional arguments:
-  {run,audit,algos}
+  {run,scan,audit,detect,analyze,algos,mcp}
     run                 submit hashes and drain the queue
+    scan                single-shot crack of one hash
     audit               print or verify the audit log
+    detect              report the likely algorithm(s) for a hash
+    analyze             score recovered plaintext passwords
     algos               list supported algorithms
+    mcp                 run the MCP server (needs the 'mcp' extra)
 
 options:
   -h, --help            show this help message and exit
   --version             show program's version number and exit
-  --format {table,json}
+  --format {table,json,csv}
   --audit-log AUDIT_LOG
 ```
 
@@ -64,17 +69,15 @@ options:
 
 **Sample result format** _(illustrative values — run on your own data for real findings):_
 
-```
+```console
+$ crackq --format json scan 5f4dcc3b5aa765d61d8327deb882cf99 --words password
 {
-"findings": [
-    {
-        "id": "1234567890",
-        "title": "Suspicious Network Traffic",
-        "description": "Anomalous network traffic detected from 192.168.1.100 to 8.8.8.8",
-        "severity": "medium",
-        "created_at": "2023-02-20T14:30:00Z"
-    }
-]
+  "algorithm": "md5",
+  "candidates_tried": 1,
+  "cracked": true,
+  "elapsed_sec": 0.0,
+  "hash": "5f4dcc3b5aa765d61d8327deb882cf99",
+  "plaintext": "password"
 }
 ```
 
@@ -84,34 +87,45 @@ options:
 
 > Defensive / authorized password-recovery only. Use on hashes you own or are explicitly authorized to test.
 
-1. Install the CLI (Python 3.9+):
+1. Install the CLI (Python 3.10+):
 
    ```bash
    pip install crackq         # or: pip install .   from a checkout
    ```
 
-2. List supported algorithms first:
+2. List supported algorithms (`md5` · `sha1` · `sha224` · `sha256` · `sha384` · `sha512`), and identify a hash before you spend cycles — `detect` reports the likely algorithm plus every length candidate and exits `1` if nothing was recognised (so a pipeline can gate the crack step):
 
    ```bash
    crackq algos
+   crackq detect --hash 5f4dcc3b5aa765d61d8327deb882cf99
    ```
 
-3. Submit hashes and drain the queue in one shot — the `run` subcommand submits + runs + reports against a wordlist:
+3. Crack a single hash with the uniform `scan` verb (exits `0` on a hit, `1` when exhausted), or submit many and drain the queue in one shot with `run` (submits + runs + reports against a wordlist, in priority order):
 
    ```bash
+   crackq scan 5f4dcc3b5aa765d61d8327deb882cf99 --words password
    crackq run --hash 5f4dcc3b5aa765d61d8327deb882cf99 --algorithm md5 --wordlist rockyou.txt --owner blue-team
    ```
 
-   You can repeat `--hash`, supply `--hashfile`, pass inline `--words`, or use `--no-rules` to disable rule mangling.
+   You can repeat `--hash`, supply `--hashfile`, pass inline `--words`, set `--priority`, or use `--no-rules` to disable rule mangling.
 
-4. Read the result — `--format json` gives per-job state; exit code is `1` if any job failed (bad algo/error), `0` otherwise. Verify the tamper-evident audit log:
+4. Read the result — the global `--format {table,json,csv}` switch renders every subcommand; exit code is `1` if any job failed (bad algo/error), `0` otherwise. Roll a whole run up with `--metrics` (queue totals) or `--report` (password strength/composition), and verify the tamper-evident audit log:
 
    ```bash
-   crackq run --hashfile hashes.txt --wordlist rockyou.txt --format json | jq '.[] | {hash, state, plaintext}'
+   crackq --format json run --hashfile hashes.txt --wordlist rockyou.txt | jq '.[] | {hash, state, plaintext}'
+   crackq --format json run --hashfile hashes.txt --wordlist rockyou.txt --metrics
+   crackq --format json run --hashfile hashes.txt --wordlist rockyou.txt --report
    crackq audit --verify
    ```
 
-5. Use it in an authorized credential-audit pipeline — every action is appended to the audit log (default in the temp dir; override with `--audit-log`):
+5. Turn cracked plaintexts into an actionable audit with `analyze` — per-password strength/entropy or, with `--report`, an aggregate with pattern frequency, reuse detection, and remediation guidance:
+
+   ```bash
+   crackq analyze --password Summer2025 --password 'Tr0ub4dor'
+   crackq --format json analyze --pwfile cracked.txt --report --top-weak 10
+   ```
+
+6. Use it in an authorized credential-audit pipeline — every action is appended to the audit log (default in the temp dir; override with `--audit-log`). See [`docs/USAGE.md`](docs/USAGE.md) for the full reference and [`ROADMAP.md`](ROADMAP.md) for where crackq is headed:
 
    ```bash
    crackq --audit-log audit.jsonl run --hashfile hashes.txt --wordlist words.txt --owner soc
@@ -127,16 +141,19 @@ options:
 
 Self-hosted password cracking queue — multi-user hashcat with audit log — without standing up heavyweight infrastructure.
 
-`crackq` is single-purpose, scriptable, and self-hostable: point it at a target, get prioritized results in the format your workflow already speaks (table · JSON · SARIF), gate CI on it, and let agents drive it over MCP.
+`crackq` is single-purpose, scriptable, and self-hostable: point it at a target, get prioritized results in the format your workflow already speaks (table · JSON · CSV), gate CI on it, and let agents drive it over MCP.
 
 <div align="right"><a href="#top">↑ back to top</a></div>
 
 <a name="features"></a>
 ## Features
 
-- ✅ Supported Algorithms
-- ✅ Detect Algorithm
-- ✅ Crack Hash
+- ✅ Real offline dictionary attack (`md5` · `sha1` · `sha224` · `sha256` · `sha384` · `sha512`) with rule mangling
+- ✅ Auto hash-type detection (`detect`) — likely algorithm + every length candidate
+- ✅ Multi-user **priority queue** with cancellation, per-job accounting, and aggregate `--metrics`
+- ✅ Tamper-evident, hash-chained **audit log** with `verify`
+- ✅ Password **strength/composition analytics** (`analyze`) — entropy estimate, pattern & reuse detection, remediation guidance
+- ✅ `table` · `json` · `csv` output on every subcommand; uniform `scan` verb + MCP server
 - ✅ Runs on Linux/macOS/Windows · Docker · devcontainer
 - ✅ Ports in Python, JavaScript, Go, and Rust (`ports/`)
 
@@ -149,8 +166,13 @@ Self-hosted password cracking queue — multi-user hashcat with audit log — wi
 pip install cognis-crackq
 crackq --version
 crackq algos                                                   # list supported algorithms
+crackq detect --hash <digest>                                  # identify the likely algorithm(s)
+crackq scan <digest> --wordlist words.txt                      # single-shot crack
 crackq run --hash <digest> --wordlist words.txt --owner blue   # submit + drain the queue
-crackq run --hashfile hashes.txt --wordlist words.txt --format json   # machine-readable
+crackq --format json run --hashfile hashes.txt --wordlist words.txt           # machine-readable
+crackq --format json run --hashfile hashes.txt --wordlist words.txt --metrics # aggregate metrics
+crackq --format json run --hashfile hashes.txt --wordlist words.txt --report  # strength report
+crackq analyze --pwfile cracked.txt --report                   # password strength analytics
 crackq audit --verify                                          # check the tamper-evident log
 ```
 
@@ -219,9 +241,9 @@ PYTHONUTF8=1 python demos/02_secops_priority_queue.py      # or just one
 `crackq` is interoperable with every popular way of using AI:
 
 - **MCP server** — `crackq mcp` (Claude Desktop, Cursor, Cognis.Studio, [uncensored-fleet](https://github.com/cognis-digital/uncensored-fleet))
-- **OpenAI-compatible / JSON** — pipe `crackq scan . --format json` into any agent or LLM
+- **OpenAI-compatible / JSON** — pipe `crackq --format json scan <digest> --wordlist words.txt` into any agent or LLM
 - **LangChain · CrewAI · AutoGen · LlamaIndex** — wrap the CLI/JSON as a tool in one line
-- **CI / scripts** — exit codes + SARIF for non-AI pipelines
+- **CI / scripts** — meaningful exit codes + `json`/`csv` output for non-AI pipelines
 
 <div align="right"><a href="#top">↑ back to top</a></div>
 
@@ -232,7 +254,7 @@ PYTHONUTF8=1 python demos/02_secops_priority_queue.py      # or just one
 |---|:---:|:---:|
 | Self-hostable, no account | ✅ | varies |
 | Single command, zero config | ✅ | ⚠️ |
-| JSON + SARIF for CI | ✅ | varies |
+| JSON + CSV for CI | ✅ | varies |
 | MCP-native (AI agents) | ✅ | ❌ |
 | Polyglot ports (JS/Go/Rust) | ✅ | ❌ |
 | Open license | ✅ COCL | varies |
@@ -241,7 +263,7 @@ PYTHONUTF8=1 python demos/02_secops_priority_queue.py      # or just one
 <a name="integrations"></a>
 ## Integrations
 
-Pipes into your stack: **SARIF** for code-scanning, **JSON** for anything, an **MCP server** (`crackq mcp`) for AI agents, and a webhook forwarder for SIEM/Slack/Jira. See [`docs/INTEGRATIONS.md`](docs/INTEGRATIONS.md).
+Pipes into your stack: **JSON** and **CSV** for anything, an **MCP server** (`crackq mcp`) for AI agents, and a webhook forwarder for SIEM/Slack/Jira. See [`docs/INTEGRATIONS.md`](docs/INTEGRATIONS.md).
 
 <div align="right"><a href="#top">↑ back to top</a></div>
 

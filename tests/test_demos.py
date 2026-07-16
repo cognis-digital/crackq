@@ -4,7 +4,6 @@ Each demo uses the real crackq API offline; these run them as smoke tests
 (they must not raise and must exercise the documented code paths) plus a few
 direct assertions on the queue/audit behavior the demos rely on.
 """
-import hashlib
 import importlib
 import io
 import os
@@ -22,6 +21,7 @@ SCENARIOS = [
     "03_ir_audit_chain",
     "04_platform_admin_capacity",
     "05_cli_pipeline",
+    "06_password_analytics",
 ]
 
 
